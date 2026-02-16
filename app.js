@@ -59,7 +59,27 @@ require([
     }
   });
 
-  const search = new Search({ view });
+  const search = new Search({
+    view,
+    includeDefaultSources: false,
+    popupEnabled: false,
+    sources: [
+      {
+        layer: parcelLayer,
+        searchFields: ["Landowner", "TMK9TXT", "Physical_Address"],
+        displayField: "TMK9TXT",
+        outFields,
+        exactMatch: false,
+        name: "Oahu Parcels",
+        placeholder: "Search owner, TMK, or address",
+        suggestionTemplate: "{Landowner} | TMK {TMK9TXT} | {Physical_Address}",
+        resultTemplate: "{Landowner} | TMK {TMK9TXT}",
+        maxResults: 12,
+        maxSuggestions: 12,
+        minSuggestCharacters: 2
+      }
+    ]
+  });
   const home = new Home({ view });
   view.ui.add(search, "top-right");
   view.ui.add(home, "top-right");
@@ -125,6 +145,24 @@ require([
     }
   }
 
+  async function getFullFeature(feature) {
+    const attrs = feature.attributes || {};
+    const objectIdField = parcelLayer.objectIdField || "OBJECTID";
+    const objectId = attrs[objectIdField] ?? attrs.OBJECTID ?? attrs.objectid;
+
+    if (objectId === undefined || objectId === null) {
+      return feature;
+    }
+
+    const query = parcelLayer.createQuery();
+    query.objectIds = [objectId];
+    query.outFields = outFields;
+    query.returnGeometry = true;
+
+    const result = await parcelLayer.queryFeatures(query);
+    return result.features[0] || feature;
+  }
+
   async function pickParcel(screenPoint) {
     const hit = await view.hitTest(screenPoint, { include: [parcelLayer] });
     const result = hit.results.find((r) => r.graphic && r.graphic.layer === parcelLayer);
@@ -138,9 +176,9 @@ require([
       return;
     }
 
-    const feature = result.graphic;
-    setHighlight(feature);
-    setDetails(feature);
+    const fullFeature = await getFullFeature(result.graphic);
+    setHighlight(fullFeature);
+    setDetails(fullFeature);
   }
 
   view.when(async function () {
@@ -150,5 +188,12 @@ require([
 
   view.on("click", function (event) {
     pickParcel(event);
+  });
+
+  search.on("select-result", async function (event) {
+    if (!event.result || !event.result.feature) return;
+    const fullFeature = await getFullFeature(event.result.feature);
+    setHighlight(fullFeature);
+    setDetails(fullFeature);
   });
 });

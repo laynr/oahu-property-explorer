@@ -2,6 +2,8 @@
 
 Interactive map of Oahu parcels. Click a parcel to view owner and useful lot details.
 
+Live site: `https://laynr.github.io/oahu-property-explorer/`
+
 ## Run
 
 ```bash
@@ -9,6 +11,12 @@ python3 -m http.server 8000
 ```
 
 Then open `http://localhost:8000`.
+
+## Features
+
+- Click parcel to view owner, TMK, address, area, and related fields
+- Search by owner name, TMK, or physical address
+- Direct link to parcel tax details when available (`qpub_link`)
 
 ## Data source
 
