@@ -48,87 +48,6 @@ body {
   line-height: 1.35;
 }
 
-.search-panel {
-  background: #fffdf7;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 0.85rem;
-}
-
-.search-panel label {
-  display: block;
-  margin-bottom: 0.5rem;
-  font-size: 0.78rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #3b5157;
-}
-
-.search-row {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.search-row input {
-  flex: 1;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 0.5rem 0.6rem;
-  font: inherit;
-  background: #fff;
-}
-
-.search-row button {
-  border: 1px solid #0a5a5e;
-  background: var(--accent);
-  color: #fff;
-  border-radius: 8px;
-  padding: 0.5rem 0.8rem;
-  font: inherit;
-  cursor: pointer;
-}
-
-.search-row button:hover {
-  filter: brightness(0.95);
-}
-
-.search-status {
-  margin-top: 0.5rem;
-  min-height: 1.1rem;
-  color: var(--muted);
-  font-size: 0.84rem;
-}
-
-.search-results {
-  margin-top: 0.5rem;
-  max-height: 180px;
-  overflow: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-}
-
-.search-result {
-  text-align: left;
-  width: 100%;
-  border: 1px solid var(--border);
-  background: #fff;
-  border-radius: 8px;
-  padding: 0.5rem;
-  cursor: pointer;
-}
-
-.search-result strong {
-  display: block;
-}
-
-.search-result span {
-  display: block;
-  margin-top: 0.2rem;
-  color: var(--muted);
-  font-size: 0.86rem;
-}
-
 .details {
   background: #fffdf7;
   border: 1px solid var(--border);
@@ -170,10 +89,6 @@ a {
 .panel-footer {
   margin-top: auto;
   font-size: 0.82rem;
-}
-
-.esri-search {
-  min-width: 320px;
 }
 
 @media (max-width: 900px) {

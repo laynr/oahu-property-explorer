@@ -85,10 +85,6 @@ require([
   view.ui.add(home, "top-right");
 
   const details = document.getElementById("details");
-  const ownerSearchInput = document.getElementById("ownerSearchInput");
-  const ownerSearchButton = document.getElementById("ownerSearchButton");
-  const ownerSearchStatus = document.getElementById("ownerSearchStatus");
-  const ownerSearchResults = document.getElementById("ownerSearchResults");
   let activeHighlight = null;
   let parcelLayerView = null;
 
@@ -117,12 +113,11 @@ require([
   function setDetails(feature) {
     const a = feature.attributes;
     const qpub = a.qpub_link && String(a.qpub_link).trim() ? esc(a.qpub_link) : null;
-    const ownerName = a.Landowner && String(a.Landowner).trim() ? a.Landowner : "Not listed in this dataset";
 
     details.classList.remove("empty");
     details.innerHTML = `
       <dl class="kv">
-        <dt>Owner</dt><dd>${formatValue(ownerName)}</dd>
+        <dt>Owner</dt><dd>${formatValue(a.Landowner)}</dd>
         <dt>TMK</dt><dd>${formatValue(a.TMK9TXT || a.tmk)}</dd>
         <dt>Physical Address</dt><dd>${formatValue(a.Physical_Address)}</dd>
         <dt>Lessee</dt><dd>${formatValue(a.Lessee__if_applicable_ || a.Sub_Lessee)}</dd>
@@ -150,102 +145,29 @@ require([
     }
   }
 
-  async function getFullFeatureByObjectId(objectId) {
+  async function getFullFeature(feature) {
+    const attrs = feature.attributes || {};
+    const objectIdField = parcelLayer.objectIdField || "OBJECTID";
+    const objectId = attrs[objectIdField] ?? attrs.OBJECTID ?? attrs.objectid;
+
+    if (objectId === undefined || objectId === null) {
+      return feature;
+    }
+
     const query = parcelLayer.createQuery();
     query.objectIds = [objectId];
     query.outFields = outFields;
     query.returnGeometry = true;
 
     const result = await parcelLayer.queryFeatures(query);
-    return result.features[0] || null;
+    return result.features[0] || feature;
   }
 
-  async function getFullFeature(feature) {
-    const attrs = feature.attributes || {};
-    const objectIdField = parcelLayer.objectIdField || "OBJECTID_1";
-    const objectId = attrs[objectIdField] ?? attrs.OBJECTID_1 ?? attrs.OBJECTID ?? attrs.objectid;
+  async function pickParcel(screenPoint) {
+    const hit = await view.hitTest(screenPoint, { include: [parcelLayer] });
+    const result = hit.results.find((r) => r.graphic && r.graphic.layer === parcelLayer);
 
-    if (objectId === undefined || objectId === null) return feature;
-    return (await getFullFeatureByObjectId(objectId)) || feature;
-  }
-
-  function clearSearchResults() {
-    ownerSearchResults.innerHTML = "";
-  }
-
-  function renderSearchResult(feature) {
-    const attrs = feature.attributes || {};
-    const owner = attrs.Landowner && String(attrs.Landowner).trim() ? attrs.Landowner : "Owner not listed";
-    const tmk = attrs.TMK9TXT || attrs.tmk || "-";
-    const addr = attrs.Physical_Address || "Address not listed";
-
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "search-result";
-    btn.innerHTML = `<strong>${esc(owner)}</strong><span>TMK ${esc(String(tmk))} | ${esc(String(addr))}</span>`;
-    btn.addEventListener("click", async function () {
-      const objectIdField = parcelLayer.objectIdField || "OBJECTID_1";
-      const objectId = attrs[objectIdField] ?? attrs.OBJECTID_1 ?? attrs.OBJECTID ?? attrs.objectid;
-      const fullFeature = objectId !== undefined ? await getFullFeatureByObjectId(objectId) : feature;
-      if (!fullFeature) return;
-      setHighlight(fullFeature);
-      setDetails(fullFeature);
-      await view.goTo(fullFeature.geometry);
-    });
-    ownerSearchResults.appendChild(btn);
-  }
-
-  function normalizeSearchTerm(value) {
-    return String(value || "").trim().replaceAll("'", "''");
-  }
-
-  async function runOwnerSearch() {
-    const raw = ownerSearchInput.value || "";
-    const term = normalizeSearchTerm(raw);
-    clearSearchResults();
-
-    if (!term) {
-      ownerSearchStatus.textContent = "Enter owner, TMK, or address.";
-      return;
-    }
-
-    ownerSearchStatus.textContent = "Searching...";
-
-    const query = parcelLayer.createQuery();
-    query.where = [
-      `UPPER(Landowner) LIKE UPPER('%${term}%')`,
-      `TMK9TXT LIKE '%${term}%'`,
-      `UPPER(Physical_Address) LIKE UPPER('%${term}%')`,
-      `tmk LIKE '%${term}%'`
-    ].join(" OR ");
-    query.outFields = outFields;
-    query.returnGeometry = true;
-    query.num = 15;
-
-    const result = await parcelLayer.queryFeatures(query);
-    const features = result.features || [];
-
-    if (!features.length) {
-      ownerSearchStatus.textContent = "No matches found.";
-      return;
-    }
-
-    ownerSearchStatus.textContent = `${features.length} match${features.length === 1 ? "" : "es"} found.`;
-    features.forEach(renderSearchResult);
-  }
-
-  async function pickParcel(event) {
-    const query = parcelLayer.createQuery();
-    query.geometry = event.mapPoint;
-    query.spatialRelationship = "intersects";
-    query.outFields = outFields;
-    query.returnGeometry = true;
-    query.num = 1;
-
-    const result = await parcelLayer.queryFeatures(query);
-    const feature = result.features && result.features[0];
-
-    if (!feature) {
+    if (!result) {
       clearDetails("No parcel found at that point. Try zooming in and clicking inside a parcel.");
       if (activeHighlight) {
         activeHighlight.remove();
@@ -254,8 +176,9 @@ require([
       return;
     }
 
-    setHighlight(feature);
-    setDetails(feature);
+    const fullFeature = await getFullFeature(result.graphic);
+    setHighlight(fullFeature);
+    setDetails(fullFeature);
   }
 
   view.when(async function () {
@@ -272,13 +195,5 @@ require([
     const fullFeature = await getFullFeature(event.result.feature);
     setHighlight(fullFeature);
     setDetails(fullFeature);
-  });
-
-  ownerSearchButton.addEventListener("click", function () {
-    runOwnerSearch();
-  });
-
-  ownerSearchInput.addEventListener("keydown", function (event) {
-    if (event.key === "Enter") runOwnerSearch();
   });
 });
