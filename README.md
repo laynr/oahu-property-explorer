@@ -2,13 +2,7 @@
 
 Interactive map of Oahu parcels. Click a parcel to view owner and useful lot details.
 
-## Run
-
-```bash
-python3 -m http.server 8000
-```
-
-Then open `http://localhost:8000`.
+Live site: `https://laynr.github.io/oahu-property-explorer/`
 
 ## Data source
 
